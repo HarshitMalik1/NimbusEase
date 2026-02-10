@@ -1,0 +1,62 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Build outputs
+dist/
+build/
+*.exe
+*.dll
+*.pak
+*.dat
+*.bin
+*.json
+!package.json
+!tsconfig.json
+!docker-compose.yml
+!model.json
+!vk_swiftshader_icd.json
+
+# Specific to this project
+LM Studio/
+LM-Studio-*.exe
+dashboard_output.txt
+final_verification.txt
+full_sim_output.txt
+full_spectrum_output.txt
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Blockchain specific
+root/blockchain/fabric-chaincode/dist/
+root/blockchain/fabric-chaincode/node_modules/
+
+# Backend specific
+root/backend/dist/
+root/backend/node_modules/
+root/backend/.env
+
+# Frontend specific
+root/frontend/dist/
+root/frontend/node_modules/
+root/frontend/build/
+root/frontend/.env
