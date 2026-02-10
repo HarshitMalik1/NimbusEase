@@ -134,7 +134,7 @@ export class BlockchainService implements OnModuleInit, OnModuleDestroy {
 
     try {
       const record = await this.blockchainRepository.findOne({
-        where: { txHash },
+        where: { txHash: { equals: txHash } },
       });
 
       if (!record) {
@@ -175,7 +175,7 @@ export class BlockchainService implements OnModuleInit, OnModuleDestroy {
 
     // Fallback to local
     const records = await this.blockchainRepository.find({
-      where: { fileId },
+      where: { fileId: { equals: fileId } },
       order: { timestamp: 'DESC' },
     });
 

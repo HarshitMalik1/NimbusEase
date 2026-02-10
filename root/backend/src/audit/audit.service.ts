@@ -31,7 +31,7 @@ export class AuditService {
 
   async getUserLogs(userId: string, limit = 100) {
     return this.auditRepository.find({
-      where: { userId },
+      where: { userId: { equals: userId } },
       order: { createdAt: 'DESC' },
       take: limit,
     });

@@ -24,7 +24,7 @@ export class AuthService {
     const { email, password, fullName } = registerDto;
 
     // Check if user exists
-    const existingUser = await this.userRepository.findOne({ where: { email } });
+    const existingUser = await this.userRepository.findOne({ where: { email: { equals: email } } });
     if (existingUser) {
       throw new BadRequestException('User already exists');
     }
@@ -53,7 +53,7 @@ export class AuthService {
 
     // Find user
     const user = await this.userRepository.findOne({
-      where: { email },
+      where: { email: { equals: email } },
       select: ['id', 'email', 'password', 'role', 'mfaEnabled', 'mfaSecret', 'isActive'],
     });
 
@@ -119,7 +119,7 @@ export class AuthService {
 
   async enableMfa(userId: string) {
     if (!ObjectId.isValid(userId)) throw new BadRequestException('Invalid user ID');
-    const user = await this.userRepository.findOne({ where: { id: new ObjectId(userId) } });
+    const user = await this.userRepository.findOne({ where: { id: { equals: new ObjectId(userId) } } });
     if (!user) {
       throw new BadRequestException('User not found');
     }
@@ -141,7 +141,7 @@ export class AuthService {
 
   async verifyMfaSetup(userId: string, token: string) {
     if (!ObjectId.isValid(userId)) throw new BadRequestException('Invalid user ID');
-    const user = await this.userRepository.findOne({ where: { id: new ObjectId(userId) } });
+    const user = await this.userRepository.findOne({ where: { id: { equals: new ObjectId(userId) } } });
     if (!user || !user.mfaSecret) {
       throw new BadRequestException('MFA not initialized');
     }
@@ -170,7 +170,7 @@ export class AuthService {
 
       if (!ObjectId.isValid(payload.sub)) throw new UnauthorizedException();
       const user = await this.userRepository.findOne({
-        where: { id: new ObjectId(payload.sub) },
+        where: { id: { equals: new ObjectId(payload.sub) } },
       });
 
       if (!user) {

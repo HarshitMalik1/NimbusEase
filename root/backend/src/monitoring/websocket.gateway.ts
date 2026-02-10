@@ -37,7 +37,7 @@ export class MonitoringGateway implements OnGatewayConnection, OnGatewayDisconne
       const token = client.handshake.auth.token;
       const payload = this.jwtService.verify(token);
       
-      const user = await this.userRepository.findOne({ where: { id: payload.sub } });
+      const user = await this.userRepository.findOne({ where: { id: { equals: payload.sub } } });
       
       if (!user || !user.isActive) {
           console.warn(`Connection rejected: User ${payload.sub} not found or inactive`);
