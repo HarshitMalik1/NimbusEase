@@ -10,7 +10,7 @@ import { RedisMockService } from './redis-mock.service';
 
 @Injectable()
 export class AiEngineService implements OnModuleInit {
-  private model: tf.LayersModel;
+  private model!: tf.LayersModel;
   private readonly logger = new Logger(AiEngineService.name);
   private isModelTrained = false;
   private readonly modelPath = 'file://' + path.join(process.cwd(), 'root/backend/models/security-model');
@@ -50,7 +50,7 @@ export class AiEngineService implements OnModuleInit {
         this.logger.log('✅ AI Model loaded from disk.');
         return;
       }
-    } catch (e) {
+    } catch (e: any) {
       this.logger.warn(`Could not load model from disk: ${e.message}`);
     }
 
@@ -111,7 +111,7 @@ export class AiEngineService implements OnModuleInit {
       }));
 
       this.logger.log('💾 AI Model persisted to disk (Manual Save).');
-    } catch (e) {
+    } catch (e: any) {
       this.logger.error(`Failed to save model: ${e.message}`);
     }
   }
@@ -204,7 +204,7 @@ export class AiEngineService implements OnModuleInit {
 
   private calculateEntropy(text: string): number {
     if (!text) return 0;
-    const charCounts = {};
+    const charCounts: Record<string, number> = {};
     for (const char of text) {
       charCounts[char] = (charCounts[char] || 0) + 1;
     }

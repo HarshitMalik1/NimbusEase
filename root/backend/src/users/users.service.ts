@@ -16,7 +16,7 @@ export class UsersService {
       throw new NotFoundException('Invalid user ID format');
     }
     const user = await this.userRepository.findOne({
-      where: { id: { equals: new ObjectId(id) } },
+      where: { id: new ObjectId(id) } as any,
     });
 
     if (!user) {
@@ -28,7 +28,7 @@ export class UsersService {
 
   async findByEmail(email: string): Promise<User | null> {
     return this.userRepository.findOne({
-      where: { email: { equals: email } },
+      where: { email: email } as any,
     });
   }
 

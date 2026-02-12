@@ -13,7 +13,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class StorageService {
-  private s3: S3;
+  private s3!: S3;
   private readonly encryptionAlgorithm = 'aes-256-gcm';
   private readonly storageStrategy: string;
   private readonly localPath: string;

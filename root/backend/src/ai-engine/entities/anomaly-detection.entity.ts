@@ -3,26 +3,26 @@ import { Entity, ObjectIdColumn, ObjectId, Column, CreateDateColumn, UpdateDateC
 @Entity('anomaly_detections')
 export class AnomalyDetection {
   @ObjectIdColumn()
-  id: ObjectId;
+  id!: ObjectId;
 
   @Column()
-  userId: string;
+  userId!: string;
 
   @Column()
-  score: number;
+  score!: number;
 
   @Column()
-  features: any;
+  features!: any;
 
   @Column({ nullable: true })
-  llmAnalysis: any;
+  llmAnalysis!: any;
 
   @Column({ default: 'DETECTED' })
-  status: 'DETECTED' | 'ANALYZED' | 'RESOLVED';
+  status!: 'DETECTED' | 'ANALYZED' | 'RESOLVED';
 
   @CreateDateColumn()
-  detectedAt: Date;
+  detectedAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 }

@@ -3,17 +3,17 @@ import { Entity, ObjectIdColumn, ObjectId, Column, CreateDateColumn, UpdateDateC
 @Entity('user_behavior_profiles')
 export class UserBehaviorProfile {
   @ObjectIdColumn()
-  id: ObjectId;
+  id!: ObjectId;
 
   @Column()
-  userId: string;
+  userId!: string;
 
   @Column()
-  baselineFeatures: any;
+  baselineFeatures!: any;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 }

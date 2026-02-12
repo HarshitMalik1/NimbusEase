@@ -164,6 +164,10 @@ export class AuthService {
     user.mfaSecret = secret.base32;
     await this.userRepository.save(user);
 
+    if (!secret.otpauth_url) {
+      throw new BadRequestException('Failed to generate MFA QR code');
+    }
+
     const qrCodeUrl = await qrcode.toDataURL(secret.otpauth_url);
 
     return {

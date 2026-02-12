@@ -8,9 +8,9 @@ import * as fs from 'fs';
 
 @Injectable()
 export class BlockchainService implements OnModuleInit, OnModuleDestroy {
-  private gateway: Gateway;
-  private network: Network;
-  private contract: Contract;
+  private gateway!: Gateway;
+  private network!: Network;
+  private contract!: Contract;
 
   constructor(
     @InjectRepository(BlockchainRecord)
@@ -134,7 +134,7 @@ export class BlockchainService implements OnModuleInit, OnModuleDestroy {
 
     try {
       const record = await this.blockchainRepository.findOne({
-        where: { txHash: { equals: txHash } },
+        where: { txHash: txHash } as any,
       });
 
       if (!record) {
@@ -175,7 +175,7 @@ export class BlockchainService implements OnModuleInit, OnModuleDestroy {
 
     // Fallback to local
     const records = await this.blockchainRepository.find({
-      where: { fileId: { equals: fileId } },
+      where: { fileId: fileId } as any,
       order: { timestamp: 'DESC' },
     });
 

@@ -3,56 +3,56 @@ import { Entity, Column, ObjectIdColumn, ObjectId, CreateDateColumn, UpdateDateC
 @Entity('files')
 export class FileEntity {
   @ObjectIdColumn()
-  id: ObjectId;
+  id!: ObjectId;
 
   @Column()
-  userId: string;
+  userId!: string;
 
   @Column()
-  fileName: string;
+  fileName!: string;
 
   @Column()
-  mimeType: string;
+  mimeType!: string;
 
   @Column()
-  size: number;
+  size!: number;
 
   @Column()
-  s3Key: string;
+  s3Key!: string;
 
   @Column()
-  hash: string;
+  hash!: string;
 
   @Column()
-  iv: string;
+  iv!: string;
 
   @Column()
-  authTag: string;
+  authTag!: string;
 
   @Column()
-  encryptionKeyHash: string;
+  encryptionKeyHash!: string;
 
   @Column({ nullable: true })
-  blockchainTxHash: string;
+  blockchainTxHash!: string;
 
   @Column({ default: 1 })
-  version: number;
+  version!: number;
 
   @Column({ nullable: true })
-  metadata: any;
+  metadata!: any;
 
   @Column({ nullable: true })
-  lastAccessedAt: Date;
+  lastAccessedAt!: Date;
 
   @Column({ default: 0 })
-  accessCount: number;
+  accessCount!: number;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @Column({ nullable: true })
-  deletedAt: Date;
+  deletedAt!: Date;
 }

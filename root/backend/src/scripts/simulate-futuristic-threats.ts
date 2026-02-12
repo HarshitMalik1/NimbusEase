@@ -19,7 +19,7 @@ async function runFuturisticSimulation() {
   // ... (rest of the simulation setup)
 
   // Helper to generate a log
-  const generateLog = (user, ip, action, resource, details, status) => ({
+  const generateLog = (user: string, ip: string, action: string, resource: string, details: string, status: number) => ({
     userId: user,
     ipAddress: ip,
     action: action,

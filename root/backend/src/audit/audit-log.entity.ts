@@ -5,26 +5,26 @@ export type AuditSeverity = 'INFO' | 'WARNING' | 'ERROR';
 @Entity('audit_logs')
 export class AuditLog {
   @ObjectIdColumn()
-  id: ObjectId;
+  id!: ObjectId;
 
   @Column()
-  userId: string;
+  userId!: string;
 
   @Column()
-  action: string;
+  action!: string;
 
   @Column({ nullable: true })
-  metadata: any;
+  metadata!: any;
 
   @Column({ default: 'INFO' })
-  severity: AuditSeverity;
+  severity!: AuditSeverity;
 
   @Column({ nullable: true })
-  ipAddress: string;
+  ipAddress!: string;
 
   @Column({ nullable: true })
-  userAgent: string;
+  userAgent!: string;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 }

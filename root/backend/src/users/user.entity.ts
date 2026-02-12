@@ -10,49 +10,49 @@ export enum UserRole {
 @Entity('users')
 export class User {
   @ObjectIdColumn()
-  id: ObjectId;
+  id!: ObjectId;
 
   @Column({ unique: true })
-  email: string;
+  email!: string;
 
   @Column({ select: false })
   @Exclude()
-  password: string;
+  password!: string;
 
   @Column()
-  fullName: string;
+  fullName!: string;
 
   @Column({
     enum: UserRole,
     default: UserRole.USER,
   })
-  role: UserRole;
+  role!: UserRole;
 
   @Column({ default: true })
-  isActive: boolean;
+  isActive!: boolean;
 
   @Column({ default: false })
-  mfaEnabled: boolean;
+  mfaEnabled!: boolean;
 
   @Column({ nullable: true, select: false })
   @Exclude()
-  mfaSecret: string;
+  mfaSecret!: string;
 
   @Column({ nullable: true })
-  lastLoginAt: Date;
+  lastLoginAt!: Date;
 
   @Column({ nullable: true })
-  lastLoginIp: string;
+  lastLoginIp!: string;
 
   @Column({ nullable: true })
-  trustedDevices: string[];
+  trustedDevices!: string[];
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @Column({ nullable: true })
-  deletedAt: Date;
+  deletedAt!: Date;
 }
