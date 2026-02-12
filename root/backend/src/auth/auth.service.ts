@@ -10,6 +10,8 @@ import { User, UserRole } from '../users/user.entity';
 import { RefreshToken } from './refresh-token.entity';
 import { LoginDto, RegisterDto } from './dto/auth.dto';
 
+import { AuditService } from '../audit/audit.service';
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -18,13 +20,14 @@ export class AuthService {
     @InjectRepository(RefreshToken)
     private refreshTokenRepository: Repository<RefreshToken>,
     private jwtService: JwtService,
+    private readonly auditService: AuditService,
   ) {}
 
   async register(registerDto: RegisterDto) {
     const { email, password, fullName } = registerDto;
 
     // Check if user exists
-    const existingUser = await this.userRepository.findOne({ where: { email: { equals: email } } });
+    const existingUser = await this.userRepository.findOne({ where: { email: email } });
     if (existingUser) {
       throw new BadRequestException('User already exists');
     }
@@ -42,6 +45,13 @@ export class AuthService {
 
     await this.userRepository.save(user);
 
+    await this.auditService.logAction(
+      user.id.toString(),
+      'USER_REGISTERED',
+      { email },
+      'INFO'
+    );
+
     return {
       message: 'Registration successful',
       userId: user.id.toString(),
@@ -53,7 +63,7 @@ export class AuthService {
 
     // Find user
     const user = await this.userRepository.findOne({
-      where: { email: { equals: email } },
+      where: { email: email },
       select: ['id', 'email', 'password', 'role', 'mfaEnabled', 'mfaSecret', 'isActive'],
     });
 
@@ -64,6 +74,12 @@ export class AuthService {
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
+      await this.auditService.logAction(
+        user.id.toString(),
+        'LOGIN_FAILED',
+        { reason: 'Invalid password' },
+        'WARNING'
+      );
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -80,12 +96,25 @@ export class AuthService {
       });
 
       if (!isMfaValid) {
+        await this.auditService.logAction(
+          user.id.toString(),
+          'MFA_FAILED',
+          {},
+          'WARNING'
+        );
         throw new UnauthorizedException('Invalid MFA code');
       }
     }
 
     // Generate tokens
     const tokens = await this.generateTokens(user);
+
+    await this.auditService.logAction(
+      user.id.toString(),
+      'USER_LOGGED_IN',
+      { role: user.role },
+      'INFO'
+    );
 
     return {
       ...tokens,
@@ -103,15 +132,19 @@ export class AuthService {
     const accessToken = this.jwtService.sign(payload);
     const refreshToken = this.jwtService.sign(payload, {
       secret: process.env.JWT_REFRESH_SECRET,
-      expiresIn: '7d',
+      expiresIn: '3d',
     });
 
     // Store refresh token
     const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+    
+    // Rotation: Delete old tokens for this user before saving new one
+    await this.refreshTokenRepository.delete({ userId: user.id.toString() });
+
     await this.refreshTokenRepository.save({
       userId: user.id.toString(),
       token: hashedRefreshToken,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      expiresAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
     });
 
     return { accessToken, refreshToken };
@@ -119,7 +152,7 @@ export class AuthService {
 
   async enableMfa(userId: string) {
     if (!ObjectId.isValid(userId)) throw new BadRequestException('Invalid user ID');
-    const user = await this.userRepository.findOne({ where: { id: { equals: new ObjectId(userId) } } });
+    const user = await this.userRepository.findOne({ where: { id: new ObjectId(userId) } });
     if (!user) {
       throw new BadRequestException('User not found');
     }
@@ -141,7 +174,7 @@ export class AuthService {
 
   async verifyMfaSetup(userId: string, token: string) {
     if (!ObjectId.isValid(userId)) throw new BadRequestException('Invalid user ID');
-    const user = await this.userRepository.findOne({ where: { id: { equals: new ObjectId(userId) } } });
+    const user = await this.userRepository.findOne({ where: { id: new ObjectId(userId) } });
     if (!user || !user.mfaSecret) {
       throw new BadRequestException('MFA not initialized');
     }
@@ -169,8 +202,29 @@ export class AuthService {
       });
 
       if (!ObjectId.isValid(payload.sub)) throw new UnauthorizedException();
+      
+      const userId = payload.sub;
+      const userTokens = await this.refreshTokenRepository.find({
+        where: { userId },
+      });
+
+      // Find if any of the stored hashed tokens matches the provided refresh token
+      let isValidToken = false;
+      for (const tokenEntity of userTokens) {
+        if (await bcrypt.compare(refreshToken, tokenEntity.token)) {
+          if (tokenEntity.expiresAt > new Date()) {
+            isValidToken = true;
+          }
+          break;
+        }
+      }
+
+      if (!isValidToken) {
+        throw new UnauthorizedException('Refresh token is invalid or expired');
+      }
+
       const user = await this.userRepository.findOne({
-        where: { id: { equals: new ObjectId(payload.sub) } },
+        where: { id: new ObjectId(userId) },
       });
 
       if (!user) {
@@ -178,7 +232,8 @@ export class AuthService {
       }
 
       return this.generateTokens(user);
-    } catch {
+    } catch (e) {
+      if (e instanceof UnauthorizedException) throw e;
       throw new UnauthorizedException('Invalid refresh token');
     }
   }

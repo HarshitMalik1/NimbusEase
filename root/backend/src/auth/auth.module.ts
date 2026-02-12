@@ -9,6 +9,7 @@ import { RefreshTokenStrategy } from './refresh-token.strategy';
 import { User } from '../users/user.entity';
 import { RefreshToken } from './refresh-token.entity';
 import { UsersModule } from '../users/users.module';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { UsersModule } from '../users/users.module';
       signOptions: { expiresIn: '15m' },
     }),
     UsersModule,
+    AuditModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, RefreshTokenStrategy],

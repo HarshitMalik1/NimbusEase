@@ -8,10 +8,18 @@ import { RolesGuard } from './auth/roles.guard';
 
 import helmet from 'helmet';
 import compression from 'compression';
+import * as fs from 'fs';
 
 async function bootstrap() {
+  // 🔒 HTTPS Configuration (Uncomment for Production)
+  // const httpsOptions = process.env.NODE_ENV === 'production' ? {
+  //   key: fs.readFileSync('./secrets/private-key.pem'),
+  //   cert: fs.readFileSync('./secrets/public-certificate.pem'),
+  // } : undefined;
+
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+    // httpsOptions, // Uncomment to enable HTTPS
   });
 
   // 🔐 Global Roles Guard (RBAC)
@@ -25,9 +33,15 @@ async function bootstrap() {
   app.use(compression());
 
   // 🌍 CORS
+  const allowedOrigins = process.env.ALLOWED_ORIGINS 
+    ? process.env.ALLOWED_ORIGINS.split(',') 
+    : [process.env.FRONTEND_URL || 'http://localhost:3001'];
+
   app.enableCors({
-    origin: process.env.FRONTEND_URL,
+    origin: allowedOrigins,
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   });
 
   // ✅ Global validation

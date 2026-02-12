@@ -74,7 +74,9 @@ export class StorageService {
         }).promise();
       } else {
         // Mock: Save to Local Filesystem
-        const fullPath = path.join(this.localPath, storageKey);
+        const fullPath = path.resolve(this.localPath, storageKey);
+        if (!fullPath.startsWith(this.localPath)) throw new BadRequestException('Invalid path');
+
         const dir = path.dirname(fullPath);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
         fs.writeFileSync(fullPath, encrypted);
@@ -165,7 +167,9 @@ export class StorageService {
         fileBuffer = s3Object.Body as Buffer;
       } else {
         // Mock: Read from Local Filesystem
-        const fullPath = path.join(this.localPath, file.s3Key);
+        const fullPath = path.resolve(this.localPath, file.s3Key);
+        if (!fullPath.startsWith(this.localPath)) throw new BadRequestException('Invalid path');
+        
         if (!fs.existsSync(fullPath)) throw new NotFoundException('Physical file not found in local storage');
         fileBuffer = fs.readFileSync(fullPath);
       }
@@ -287,7 +291,9 @@ export class StorageService {
       }).promise();
     } else {
       // Mock: Delete from Local Filesystem
-      const fullPath = path.join(this.localPath, file.s3Key);
+      const fullPath = path.resolve(this.localPath, file.s3Key);
+      if (!fullPath.startsWith(this.localPath)) throw new BadRequestException('Invalid path');
+
       if (fs.existsSync(fullPath)) {
         fs.unlinkSync(fullPath);
       }

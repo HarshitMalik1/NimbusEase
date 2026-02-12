@@ -5,8 +5,11 @@ services:
   mongo:
     image: mongo:6
     container_name: secure-cloud-mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
     ports:
-      - "27017:27017"
+      - "127.0.0.1:27017:27017"
     volumes:
       - mongo_data:/data/db
     networks:
@@ -16,8 +19,9 @@ services:
   redis:
     image: redis:7-alpine
     container_name: secure-cloud-redis
+    command: redis-server --requirepass password123
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
     networks:
@@ -30,9 +34,10 @@ services:
       dockerfile: Dockerfile
     container_name: secure-cloud-api
     environment:
-      NODE_ENV: production
-      MONGO_URL: mongodb://mongo:27017/secure_cloud
+      NODE_ENV: development
+      MONGO_URL: mongodb://admin:password123@mongo:27017/secure_cloud?authSource=admin
       REDIS_HOST: redis
+      REDIS_PASSWORD: password123
     ports:
       - "3000:3000"
     depends_on:

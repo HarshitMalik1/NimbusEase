@@ -21,6 +21,9 @@ build/
 !vk_swiftshader_icd.json
 
 # Specific to this project
+secrets/
+*.key
+*.pem
 LM Studio/
 LM-Studio-*.exe
 dashboard_output.txt

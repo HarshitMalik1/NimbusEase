@@ -3,6 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ObjectId } from 'mongodb';
 import { User } from '../users/user.entity';
 
 @Injectable()
@@ -23,7 +24,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('Invalid token payload');
     }
 
-    const user = await this.userRepository.findOne({ where: { id: { equals: payload.sub } } });
+    const user = await this.userRepository.findOne({ where: { id: new ObjectId(payload.sub) } });
 
     if (!user) {
       throw new UnauthorizedException('User not found');
