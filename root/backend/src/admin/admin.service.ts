@@ -6,11 +6,14 @@ import { AdminProposal, ProposalStatus } from './admin-proposal.entity';
 import { User, UserRole } from '../users/user.entity';
 import { AuditService } from '../audit/audit.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import * as crypto from 'crypto';
 
 @Injectable()
 export class AdminService {
   private readonly logger = new Logger(AdminService.name);
+  // ⚠️ LIMITATION: OTPs stored in-memory (lost on restart). 
+  // RECOMMENDATION for Production: Move to Redis (e.g., redis.setex(key, 600, value))
   private otps: Map<string, { code: string; expiresAt: Date }> = new Map();
 
   constructor(
@@ -21,6 +24,28 @@ export class AdminService {
     private auditService: AuditService,
     private eventEmitter: EventEmitter2,
   ) {}
+
+  // ... (existing methods: createProposal, approveProposal)
+
+  @Cron(CronExpression.EVERY_HOUR)
+  async checkExpiredProposals() {
+    const expiredProposals = await this.proposalRepository.find({
+      where: {
+        status: ProposalStatus.PENDING,
+        createdAt: { $lt: new Date(Date.now() - 24 * 60 * 60 * 1000) } as any // 24hrs
+      }
+    });
+
+    for (const proposal of expiredProposals) {
+      proposal.status = ProposalStatus.REJECTED;
+      await this.proposalRepository.save(proposal);
+      this.logger.warn(`Proposal ${proposal.id} expired and auto-rejected`);
+      
+      await this.auditService.logAction('SYSTEM', 'ADMIN_PROPOSAL_EXPIRED', {
+        proposalId: proposal.id.toString(),
+      });
+    }
+  }
 
   async createProposal(proposerId: string, actionType: string, payload: any) {
     const adminCount = await this.userRepository.count({ where: { role: UserRole.ADMIN } });

@@ -29,7 +29,7 @@ import { AiSecurityGuard } from './ai-engine/ai-security.guard';
         type: 'mongodb',
         url: configService.get('MONGO_URL') || 'mongodb://localhost:27017/secure_cloud',
         autoLoadEntities: true,
-        synchronize: true, // ⚠️ Disable in production
+        synchronize: process.env.NODE_ENV !== 'production', // ⚠️ Disable in production
         useUnifiedTopology: true,
         useNewUrlParser: true,
       }),

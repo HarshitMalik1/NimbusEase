@@ -9,6 +9,8 @@ import { AuditLog } from '../audit/audit-log.entity';
 import { SecurityAgentService } from './security-agent.service';
 import { RedisMockService } from './redis-mock.service';
 import { ABTestingService } from './ab-testing.service';
+import * as ipaddr from 'ipaddr.js';
+import DOMPurify from 'isomorphic-dompurify';
 
 @Injectable()
 export class AiEngineService implements OnModuleInit {
@@ -281,11 +283,27 @@ export class AiEngineService implements OnModuleInit {
     const resource = (d.resource || '').toLowerCase();
     const action = d.action || '';
 
-    // Robust Regex for Internal IPs (SSRF) - Covers more bypasses
-    const internalIpRegex = /(127\.|localhost|169\.254\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|0x7f\.|::1|0\.\d+)/;
-    
-    // Enhanced Regex for XSS/Script tags
-    const xssRegex = /(<script>|javascript:|alert\(|onerror=|onload=|<img|<svg|&#[xX]?[0-9a-fA-F]+;)/;
+    // Robust SSRF Check using ipaddr.js
+    let isInternalIp = false;
+    try {
+      // Extract potential IP from details (simple regex to find candidate strings)
+      const ipCandidates = details.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})|([0-9a-fA-F:]+:[0-9a-fA-F:]+)/g) || [];
+      for (const ipStr of ipCandidates) {
+        if (ipaddr.isValid(ipStr)) {
+          const addr = ipaddr.parse(ipStr);
+          if (addr.range() === 'private' || addr.range() === 'loopback' || addr.range() === 'linkLocal') {
+            isInternalIp = true;
+            break;
+          }
+        }
+      }
+    } catch (e) {
+      // Ignore parsing errors
+    }
+
+    // Robust XSS Check using DOMPurify
+    // If sanitizing changes the input, it likely contained malicious scripts/tags
+    const isXss = DOMPurify.sanitize(details) !== details || DOMPurify.sanitize(resource) !== resource;
 
     return [
       // 0-7: Original Features
@@ -299,11 +317,11 @@ export class AiEngineService implements OnModuleInit {
       0, // User ID encoded
 
       // 8-12: New Advanced Features
-      internalIpRegex.test(details) ? 1 : 0, // SSRF (Localhost/Internal IP in payload)
+      isInternalIp ? 1 : 0, // SSRF (Robust check)
       (action === 'POST' || action === 'PUT') && d.statusCode === 429 ? 1 : 0, // Resource Exhaustion (Rate Limit Hit)
       action === 'READ' && details.includes('metadata') ? 1 : 0, // Excessive Data Exposure (Scraping)
       details.includes('role') && (details.includes('admin') || details.includes('root')) ? 1 : 0, // Privilege Escalation
-      xssRegex.test(details) || xssRegex.test(resource) ? 1 : 0, // Metadata Poisoning (XSS)
+      isXss ? 1 : 0, // Metadata Poisoning (Robust XSS)
 
       // 13-17: Futuristic Features
       details.includes('hash_change') && details.includes('sys_call') ? 1 : 0, // JIT Obfuscation
