@@ -9,7 +9,8 @@ async function runAdvancedSimulation() {
   
   const redis = new RedisMockService();
   const securityAgent = new SecurityAgentService();
-  const aiEngine = new AiEngineService(securityAgent, redis);
+  const abTesting = { getVariant: () => 'A', logComparison: async () => {} } as any;
+  const aiEngine = new AiEngineService(securityAgent, redis, abTesting);
   const simulator = new DataSimulatorService();
 
   // 1. TRAINING PHASE

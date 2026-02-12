@@ -1,5 +1,6 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import * as tf from '@tensorflow/tfjs';
+import '@tensorflow/tfjs-node';
 import * as path from 'path';
 import * as fs from 'fs';
 import { OnEvent } from '@nestjs/event-emitter';
@@ -7,6 +8,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { AuditLog } from '../audit/audit-log.entity';
 import { SecurityAgentService } from './security-agent.service';
 import { RedisMockService } from './redis-mock.service';
+import { ABTestingService } from './ab-testing.service';
 
 @Injectable()
 export class AiEngineService implements OnModuleInit {
@@ -17,7 +19,8 @@ export class AiEngineService implements OnModuleInit {
 
   constructor(
     private securityAgent: SecurityAgentService,
-    private redis: RedisMockService
+    private redis: RedisMockService,
+    private abTestingService: ABTestingService,
   ) {}
 
   async onModuleInit() {
@@ -132,12 +135,34 @@ export class AiEngineService implements OnModuleInit {
       timestamp: log.createdAt,
     };
 
-    // 1. Instant Anomaly Detection (Single Event)
-    const prediction = await this.predict(logData);
+    // 🔬 A/B Testing Mechanism
+    const variant = this.abTestingService.getVariant(log.userId);
+    
+    // Prediction A: Main Model
+    const predictionA = await this.predict(logData);
+    
+    // Prediction B: Experimental Strategy (e.g., Higher sensitivity)
+    const predictionB = { 
+      isAnomaly: predictionA.confidence > 0.6, 
+      confidence: predictionA.confidence 
+    };
 
-    if (prediction.isAnomaly) {
-      this.logger.warn(`🚨 Real-time Anomaly Detected in Audit Log: ${log.action}`);
-      const threat = await this.securityAgent.analyzeThreat(logData); // Analyze single event
+    const selectedPrediction = variant === 'A' ? predictionA : predictionB;
+
+    // Log the comparison for performance analysis
+    await this.abTestingService.logComparison({
+      userId: log.userId,
+      action: log.action,
+      predictionA,
+      predictionB,
+      selectedVariant: variant,
+      isAnomaly: selectedPrediction.isAnomaly,
+      confidence: selectedPrediction.confidence,
+    });
+
+    if (selectedPrediction.isAnomaly) {
+      this.logger.warn(`🚨 [Variant ${variant}] Anomaly Detected: ${log.action} (User: ${log.userId})`);
+      const threat = await this.securityAgent.analyzeThreat(logData); 
       if (threat.is_attack) {
         await this.securityAgent.executeMitigation(threat.mitigation_action, log.ipAddress || log.userId);
       }
@@ -148,6 +173,8 @@ export class AiEngineService implements OnModuleInit {
       await this.trackUserActivity(log.userId, logData);
     }
   }
+
+  private analysisLocks = new Set<string>();
 
   /**
    * Stateful Monitor: Tracks user history in Redis and triggers deep analysis
@@ -161,19 +188,25 @@ export class AiEngineService implements OnModuleInit {
     // Keep only last 50 events
     await this.redis.ltrim(key, 0, 49);
 
+    if (this.analysisLocks.has(userId)) return;
+
     // Get current count (simulated) or just check modulo if we had a counter
-    // For this mock, we'll fetch length.
     const history = await this.redis.lrange(key, 0, -1);
 
-    // Trigger DeepSeek Analysis every 10 events (or if history is full)
+    // Trigger DeepSeek Analysis every 10 events
     if (history.length % 10 === 0) {
       this.logger.log(`🧠 [Stateful Monitor] Analyzing 50-event sequence for User ${userId}...`);
       
-      const sequenceAnalysis = await this.securityAgent.analyzeBehaviorSequence(userId, history);
-      
-      if (sequenceAnalysis.is_attack) {
-         this.logger.error(`🚨 COMPLEX THREAT DETECTED: ${sequenceAnalysis.attack_type}`);
-         await this.securityAgent.executeMitigation(sequenceAnalysis.mitigation_action, userId);
+      this.analysisLocks.add(userId);
+      try {
+        const sequenceAnalysis = await this.securityAgent.analyzeBehaviorSequence(userId, history);
+        
+        if (sequenceAnalysis.is_attack) {
+           this.logger.error(`🚨 COMPLEX THREAT DETECTED: ${sequenceAnalysis.attack_type}`);
+           await this.securityAgent.executeMitigation(sequenceAnalysis.mitigation_action, userId);
+        }
+      } finally {
+        this.analysisLocks.delete(userId);
       }
     }
   }
@@ -248,11 +281,11 @@ export class AiEngineService implements OnModuleInit {
     const resource = (d.resource || '').toLowerCase();
     const action = d.action || '';
 
-    // Regex for Internal IPs (SSRF)
-    const internalIpRegex = /(127\.0\.0\.1|localhost|169\.254\.|10\.\d+\.\d+\.\d+|192\.168\.)/;
+    // Robust Regex for Internal IPs (SSRF) - Covers more bypasses
+    const internalIpRegex = /(127\.|localhost|169\.254\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|0x7f\.|::1|0\.\d+)/;
     
-    // Regex for XSS/Script tags (Metadata Poisoning)
-    const xssRegex = /(<script>|javascript:|alert\(|onerror=)/;
+    // Enhanced Regex for XSS/Script tags
+    const xssRegex = /(<script>|javascript:|alert\(|onerror=|onload=|<img|<svg|&#[xX]?[0-9a-fA-F]+;)/;
 
     return [
       // 0-7: Original Features

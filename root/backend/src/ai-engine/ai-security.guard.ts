@@ -67,7 +67,7 @@ export class AiSecurityGuard implements CanActivate {
 
   private calculateEntropy(text: string): number {
     if (!text) return 0;
-    const charCounts = {};
+    const charCounts: Record<string, number> = {};
     for (const char of text) {
       charCounts[char] = (charCounts[char] || 0) + 1;
     }

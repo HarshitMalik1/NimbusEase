@@ -66,13 +66,21 @@ export class MonitoringGateway implements OnGatewayConnection, OnGatewayDisconne
     for (const [userId, socket] of this.userSockets.entries()) {
       if (socket.id === client.id) {
         this.userSockets.delete(userId);
-        console.log(`User ${userId} disconnected`);
+        console.log(`User ${userId} disconnected and socket removed from map`);
         break;
       }
     }
   }
 
   // Event listeners for system events
+
+  @OnEvent('admin.action.executed')
+  handleAdminAction(data: any) {
+    this.broadcastToRoles(['ADMIN', 'SECURITY_ANALYST'], {
+      type: 'ADMIN_ACTION',
+      ...data,
+    });
+  }
 
   @OnEvent('security.anomaly')
   handleSecurityAnomaly(data: any) {

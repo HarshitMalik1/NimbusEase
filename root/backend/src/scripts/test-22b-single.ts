@@ -7,7 +7,8 @@ async function testSingle22B() {
   const logger = new Logger('22B-Test');
   const redis = new RedisMockService();
   const securityAgent = new SecurityAgentService();
-  const aiEngine = new AiEngineService(securityAgent, redis);
+  const abTesting = { getVariant: () => 'A', logComparison: async () => {} } as any;
+  const aiEngine = new AiEngineService(securityAgent, redis, abTesting);
 
   const log = {
     userId: 'hacker_101',
@@ -29,7 +30,7 @@ async function testSingle22B() {
     
     console.log(`\n✅ AI Response received in ${duration}s:`)
     console.dir(analysis, { depth: null, colors: true });
-  } catch (err) {
+  } catch (err: any) {
     logger.error(`❌ Test failed: ${err.message}`);
   }
 }

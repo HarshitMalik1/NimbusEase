@@ -33,8 +33,7 @@ export class BlockchainService implements OnModuleInit, OnModuleDestroy {
       const ccpPath = process.env.FABRIC_CONNECTION_PROFILE_PATH || path.resolve(__dirname, '..', '..', '..', '..', 'connection-org1.json');
       
       if (!fs.existsSync(ccpPath)) {
-        console.warn(`Fabric connection profile not found at ${ccpPath}. Blockchain service will not function correctly.`);
-        return;
+        throw new Error(`Fabric connection profile not found at ${ccpPath}. Blockchain service initialization failed.`);
       }
       
       const ccp = JSON.parse(fs.readFileSync(ccpPath, 'utf8'));
@@ -47,8 +46,7 @@ export class BlockchainService implements OnModuleInit, OnModuleDestroy {
       const identityLabel = process.env.FABRIC_USER || 'appUser';
       const identity = await wallet.get(identityLabel);
       if (!identity) {
-        console.warn(`An identity for the user "${identityLabel}" does not exist in the wallet. Run the enrollment script.`);
-        return;
+        throw new Error(`An identity for the user "${identityLabel}" does not exist in the wallet. Run the enrollment script.`);
       }
 
       // Create a new gateway for connecting to our peer node.

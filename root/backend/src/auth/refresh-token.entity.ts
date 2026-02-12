@@ -3,17 +3,17 @@ import { Entity, Column, ObjectIdColumn, ObjectId, CreateDateColumn } from 'type
 @Entity('refresh_tokens')
 export class RefreshToken {
   @ObjectIdColumn()
-  id: ObjectId;
+  id!: ObjectId;
 
   @Column()
-  userId: string;
+  userId!: string;
 
   @Column()
-  token: string;
+  token!: string;
 
   @Column()
-  expiresAt: Date;
+  expiresAt!: Date;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 }

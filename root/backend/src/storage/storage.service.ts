@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { S3 } from 'aws-sdk';
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -10,10 +10,11 @@ import { FileEntity } from './file.entity';
 import { BlockchainService } from '../blockchain/blockchain.service';
 import { AuditService } from '../audit/audit.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Readable } from 'stream';
 
 @Injectable()
 export class StorageService {
-  private s3!: S3;
+  private s3Client!: S3Client;
   private readonly encryptionAlgorithm = 'aes-256-gcm';
   private readonly storageStrategy: string;
   private readonly localPath: string;
@@ -29,10 +30,12 @@ export class StorageService {
     this.localPath = path.resolve(process.env.LOCAL_STORAGE_PATH || './uploads');
 
     if (this.storageStrategy === 'aws') {
-      this.s3 = new S3({
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-        region: process.env.AWS_REGION,
+      this.s3Client = new S3Client({
+        credentials: {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+        },
+        region: process.env.AWS_REGION || 'us-east-1',
       });
     } else {
       // Ensure local directory exists
@@ -50,39 +53,27 @@ export class StorageService {
     encryptionKey?: string,
   ) {
     try {
-      // Generate encryption key if not provided (client-side encryption)
       const key = encryptionKey ? Buffer.from(encryptionKey, 'hex') : crypto.randomBytes(32);
-
-      // Encrypt file
       const { encrypted, iv, authTag } = this.encryptData(fileBuffer, key);
-
-      // Calculate hash before encryption for blockchain
       const fileHash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
-
-      // Storage Key
       const storageKey = `${userId}/${Date.now()}-${fileName}`;
 
       if (this.storageStrategy === 'aws') {
-        // Upload to S3
-        await this.s3.upload({
-          Bucket: (process.env.AWS_S3_BUCKET || '') as string,
+        const command = new PutObjectCommand({
+          Bucket: process.env.AWS_S3_BUCKET || '',
           Key: storageKey,
           Body: encrypted,
           ContentType: mimeType,
-          ServerSideEncryption: 'AES256',
-          StorageClass: 'STANDARD', // Best for AWS Free Tier (5GB limit)
-        }).promise();
+        });
+        await this.s3Client.send(command);
       } else {
-        // Mock: Save to Local Filesystem
         const fullPath = path.resolve(this.localPath, storageKey);
         if (!fullPath.startsWith(this.localPath)) throw new BadRequestException('Invalid path');
-
         const dir = path.dirname(fullPath);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
         fs.writeFileSync(fullPath, encrypted);
       }
 
-      // Create file record
       const file = this.fileRepository.create({
         userId,
         fileName,
@@ -97,7 +88,6 @@ export class StorageService {
 
       await this.fileRepository.save(file);
 
-      // Register on blockchain
       const blockchainTxHash = await this.blockchainService.registerFileHash({
         fileId: file.id.toString(),
         hash: fileHash,
@@ -109,24 +99,14 @@ export class StorageService {
       file.blockchainTxHash = blockchainTxHash;
       await this.fileRepository.save(file);
 
-      // Create audit log
-      await this.auditService.logAction(
-        userId,
-        'FILE_UPLOAD',
-        {
-          resourceId: file.id.toString(),
-          fileName,
-          size: fileBuffer.length,
-          blockchainTxHash,
-        },
-      );
-
-      // Emit event for monitoring
-      this.eventEmitter.emit('file.uploaded', {
-        userId,
-        fileId: file.id.toString(),
+      await this.auditService.logAction(userId, 'FILE_UPLOAD', {
+        resourceId: file.id.toString(),
         fileName,
+        size: fileBuffer.length,
+        blockchainTxHash,
       });
+
+      this.eventEmitter.emit('file.uploaded', { userId, fileId: file.id.toString(), fileName });
 
       return {
         fileId: file.id.toString(),
@@ -135,46 +115,34 @@ export class StorageService {
         blockchainTxHash,
         encryptionKey: !encryptionKey ? key.toString('hex') : undefined,
       };
-    } catch (error) {
-      throw new BadRequestException(`Upload failed: ${(error as any).message}`);
+    } catch (error: any) {
+      throw new BadRequestException(`Upload failed: ${error.message}`);
     }
   }
 
   async downloadFile(fileId: string, userId: string, decryptionKey: string) {
     if (!ObjectId.isValid(fileId)) throw new NotFoundException('Invalid file ID');
-    const file = await this.fileRepository.findOne({
-      where: { id: new ObjectId(fileId) },
-    });
-
-    if (!file) {
-      throw new NotFoundException('File not found');
-    }
-
-    // Check ownership or permissions
-    if (file.userId !== userId) {
-      throw new BadRequestException('Access denied');
-    }
+    const file = await this.fileRepository.findOne({ where: { id: new ObjectId(fileId) } });
+    if (!file) throw new NotFoundException('File not found');
+    if (file.userId !== userId) throw new BadRequestException('Access denied');
 
     try {
       let fileBuffer: Buffer;
 
       if (this.storageStrategy === 'aws') {
-        // Download from S3
-        const s3Object = await this.s3.getObject({
-            Bucket: (process.env.AWS_S3_BUCKET || '') as string,
+        const command = new GetObjectCommand({
+          Bucket: process.env.AWS_S3_BUCKET || '',
           Key: file.s3Key,
-        }).promise();
-        fileBuffer = s3Object.Body as Buffer;
+        });
+        const response = await this.s3Client.send(command);
+        fileBuffer = await this.streamToBuffer(response.Body as Readable);
       } else {
-        // Mock: Read from Local Filesystem
         const fullPath = path.resolve(this.localPath, file.s3Key);
         if (!fullPath.startsWith(this.localPath)) throw new BadRequestException('Invalid path');
-        
-        if (!fs.existsSync(fullPath)) throw new NotFoundException('Physical file not found in local storage');
+        if (!fs.existsSync(fullPath)) throw new NotFoundException('Physical file not found');
         fileBuffer = fs.readFileSync(fullPath);
       }
 
-      // Decrypt file
       const decrypted = this.decryptData(
         fileBuffer,
         Buffer.from(decryptionKey, 'hex'),
@@ -182,78 +150,40 @@ export class StorageService {
         Buffer.from(file.authTag, 'hex'),
       );
 
-      // Verify integrity
       const currentHash = crypto.createHash('sha256').update(decrypted).digest('hex');
-      const isValid = await this.blockchainService.verifyFileHash(
-        file.blockchainTxHash,
-        currentHash,
-      );
+      const isValid = await this.blockchainService.verifyFileHash(file.blockchainTxHash, currentHash);
 
       if (!isValid) {
-        await this.auditService.logAction(
-          userId,
-          'FILE_INTEGRITY_VIOLATION',
-          { resourceId: fileId },
-          'ERROR',
-        );
-
-        this.eventEmitter.emit('security.alert', {
-          type: 'INTEGRITY_VIOLATION',
-          fileId,
-          userId,
-        });
-
-        throw new BadRequestException('File integrity check failed - file may be tampered');
+        await this.auditService.logAction(userId, 'FILE_INTEGRITY_VIOLATION', { resourceId: fileId }, 'ERROR');
+        this.eventEmitter.emit('security.alert', { type: 'INTEGRITY_VIOLATION', fileId, userId });
+        throw new BadRequestException('File integrity check failed');
       }
 
-      // Update access log
       file.lastAccessedAt = new Date();
       await this.fileRepository.save(file);
+      await this.auditService.logAction(userId, 'FILE_DOWNLOAD', { resourceId: fileId });
 
-      await this.auditService.logAction(
-        userId,
-        'FILE_DOWNLOAD',
-        { resourceId: fileId },
-      );
-
-      return {
-        buffer: decrypted,
-        fileName: file.fileName,
-        mimeType: file.mimeType,
-        integrityVerified: true,
-      };
-    } catch (error) {
-      throw new BadRequestException(`Download failed: ${(error as any).message}`);
+      return { buffer: decrypted, fileName: file.fileName, mimeType: file.mimeType, integrityVerified: true };
+    } catch (error: any) {
+      throw new BadRequestException(`Download failed: ${error.message}`);
     }
   }
 
   async verifyFileIntegrity(fileId: string) {
     if (!ObjectId.isValid(fileId)) throw new NotFoundException('Invalid file ID');
     const file = await this.fileRepository.findOne({ where: { id: new ObjectId(fileId) } });
-    if (!file) {
-      throw new NotFoundException('File not found');
-    }
+    if (!file) throw new NotFoundException('File not found');
 
-    const isValid = await this.blockchainService.verifyFileHash(
-      file.blockchainTxHash,
-      file.hash,
-    );
-
-    return {
-      fileId,
-      fileName: file.fileName,
-      integrityValid: isValid,
-      blockchainTxHash: file.blockchainTxHash,
-      verifiedAt: new Date(),
-    };
+    const isValid = await this.blockchainService.verifyFileHash(file.blockchainTxHash, file.hash);
+    return { fileId, fileName: file.fileName, integrityValid: isValid, blockchainTxHash: file.blockchainTxHash, verifiedAt: new Date() };
   }
 
   async listFiles(userId: string, page = 1, limit = 20) {
     const [files, total] = await this.fileRepository.findAndCount({
-      where: { userId },
+      where: { userId } as any,
       skip: (page - 1) * limit,
       take: limit,
-      order: { createdAt: 'DESC' },
+      order: { createdAt: 'DESC' } as any,
     });
 
     return {
@@ -275,39 +205,23 @@ export class StorageService {
   async deleteFile(fileId: string, userId: string) {
     if (!ObjectId.isValid(fileId)) throw new NotFoundException('Invalid file ID');
     const file = await this.fileRepository.findOne({ where: { id: new ObjectId(fileId) } });
-    if (!file) {
-      throw new NotFoundException('File not found');
-    }
+    if (!file) throw new NotFoundException('File not found');
+    if (file.userId !== userId) throw new BadRequestException('Access denied');
 
-    if (file.userId !== userId) {
-      throw new BadRequestException('Access denied');
-    }
-
-    // Delete from storage
     if (this.storageStrategy === 'aws') {
-      await this.s3.deleteObject({
-          Bucket: (process.env.AWS_S3_BUCKET || '') as string,
+      const command = new DeleteObjectCommand({
+        Bucket: process.env.AWS_S3_BUCKET || '',
         Key: file.s3Key,
-      }).promise();
+      });
+      await this.s3Client.send(command);
     } else {
-      // Mock: Delete from Local Filesystem
       const fullPath = path.resolve(this.localPath, file.s3Key);
-      if (!fullPath.startsWith(this.localPath)) throw new BadRequestException('Invalid path');
-
-      if (fs.existsSync(fullPath)) {
-        fs.unlinkSync(fullPath);
-      }
+      if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
     }
 
-    // Soft delete from database
     file.deletedAt = new Date();
     await this.fileRepository.save(file);
-
-    await this.auditService.logAction(
-      userId,
-      'FILE_DELETE',
-      { resourceId: fileId },
-    );
+    await this.auditService.logAction(userId, 'FILE_DELETE', { resourceId: fileId });
 
     return { message: 'File deleted successfully' };
   }
@@ -315,22 +229,23 @@ export class StorageService {
   private encryptData(data: Buffer, key: Buffer) {
     const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipheriv(this.encryptionAlgorithm, key, iv);
-
     const encrypted = Buffer.concat([cipher.update(data), cipher.final()]);
     const authTag = cipher.getAuthTag();
-
     return { encrypted, iv, authTag };
   }
 
-  private decryptData(
-    encrypted: Buffer,
-    key: Buffer,
-    iv: Buffer,
-    authTag: Buffer,
-  ) {
+  private decryptData(encrypted: Buffer, key: Buffer, iv: Buffer, authTag: Buffer) {
     const decipher = crypto.createDecipheriv(this.encryptionAlgorithm, key, iv);
     decipher.setAuthTag(authTag);
-
     return Buffer.concat([decipher.update(encrypted), decipher.final()]);
+  }
+
+  private async streamToBuffer(stream: Readable): Promise<Buffer> {
+    const chunks: Buffer[] = [];
+    return new Promise((resolve, reject) => {
+      stream.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+      stream.on('error', (err) => reject(err));
+      stream.on('end', () => resolve(Buffer.concat(chunks)));
+    });
   }
 }

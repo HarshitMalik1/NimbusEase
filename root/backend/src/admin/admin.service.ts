@@ -5,6 +5,7 @@ import { ObjectId } from 'mongodb';
 import { AdminProposal, ProposalStatus } from './admin-proposal.entity';
 import { User, UserRole } from '../users/user.entity';
 import { AuditService } from '../audit/audit.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -18,6 +19,7 @@ export class AdminService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private auditService: AuditService,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   async createProposal(proposerId: string, actionType: string, payload: any) {
@@ -115,6 +117,13 @@ export class AdminService {
     await this.auditService.logAction(adminId, 'ADMIN_ACTION_EXECUTED', {
       proposalId,
       actionType: proposal.actionType,
+    });
+
+    this.eventEmitter.emit('admin.action.executed', {
+      adminId,
+      proposalId,
+      actionType: proposal.actionType,
+      timestamp: new Date(),
     });
 
     return { message: 'Action executed successfully', result: proposal.payload };

@@ -9,18 +9,20 @@ import { RolesGuard } from './auth/roles.guard';
 import helmet from 'helmet';
 import compression from 'compression';
 import * as fs from 'fs';
+import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
-  // 🔒 HTTPS Configuration (Uncomment for Production)
-  // const httpsOptions = process.env.NODE_ENV === 'production' ? {
-  //   key: fs.readFileSync('./secrets/private-key.pem'),
-  //   cert: fs.readFileSync('./secrets/public-certificate.pem'),
-  // } : undefined;
+  const httpsOptions = process.env.NODE_ENV === 'production' ? {
+     key: fs.readFileSync('./secrets/private-key.pem'),
+     cert: fs.readFileSync('./secrets/public-certificate.pem'),
+   } : undefined;
 
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
-    // httpsOptions, // Uncomment to enable HTTPS
+    httpsOptions,
   });
+
+  app.use(cookieParser());
 
   // 🔐 Global Roles Guard (RBAC)
   const reflector = app.get(Reflector);

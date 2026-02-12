@@ -36,8 +36,17 @@ import { AiSecurityGuard } from './ai-engine/ai-security.guard';
       inject: [ConfigService],
     }),
     ThrottlerModule.forRoot([{
-      ttl: 60,
+      name: 'short',
+      ttl: 60000,
       limit: 10,
+    }, {
+      name: 'medium',
+      ttl: 60000,
+      limit: 50,
+    }, {
+      name: 'long',
+      ttl: 60000,
+      limit: 100,
     }]),
     ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),

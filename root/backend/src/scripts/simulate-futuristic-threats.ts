@@ -13,7 +13,8 @@ async function runFuturisticSimulation() {
   const redis = new RedisMockService();
   const securityAgent = new SecurityAgentService();
   const dashboard = new SecurityDashboardService(securityAgent);
-  const aiEngine = new AiEngineService(securityAgent, redis);
+  const abTesting = { getVariant: () => 'A', logComparison: async () => {} } as any;
+  const aiEngine = new AiEngineService(securityAgent, redis, abTesting);
   const simulator = new DataSimulatorService();
 
   // ... (rest of the simulation setup)

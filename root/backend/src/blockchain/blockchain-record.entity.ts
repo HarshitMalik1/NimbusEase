@@ -3,32 +3,32 @@ import { Entity, Column, ObjectIdColumn, ObjectId, CreateDateColumn } from 'type
 @Entity('blockchain_records')
 export class BlockchainRecord {
   @ObjectIdColumn()
-  id: ObjectId;
+  id!: ObjectId;
 
   @Column()
-  recordId: string; // The ID returned from the smart contract event
+  recordId!: string; // The ID returned from the smart contract event
 
   @Column()
-  fileId: string;
+  fileId!: string;
 
   @Column()
-  hash: string;
+  hash!: string;
 
   @Column()
-  ownerId: string;
+  ownerId!: string;
 
   @Column()
-  storageUri: string;
+  storageUri!: string;
 
   @Column()
-  txHash: string;
+  txHash!: string;
 
   @Column()
-  blockNumber: number;
+  blockNumber!: number;
 
   @Column()
-  timestamp: Date; // Timestamp from the blockchain/contract
+  timestamp!: Date; // Timestamp from the blockchain/contract
 
   @CreateDateColumn()
-  createdAt: Date; // Timestamp when we saved it locally
+  createdAt!: Date; // Timestamp when we saved it locally
 }

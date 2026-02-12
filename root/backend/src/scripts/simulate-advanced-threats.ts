@@ -11,10 +11,11 @@ async function runAdvancedThreatSimulation() {
   // Initialize Services
   const redis = new RedisMockService();
   const securityAgent = new SecurityAgentService();
-  const aiEngine = new AiEngineService(securityAgent, redis);
+  const abTesting = { getVariant: () => 'A', logComparison: async () => {} } as any;
+  const aiEngine = new AiEngineService(securityAgent, redis, abTesting);
   
   // MOCK LOG GENERATOR
-  const generateLog = (user, ip, action, resource, status) => ({
+  const generateLog = (user: string, ip: string, action: string, resource: string, status: number) => ({
     userId: user,
     ipAddress: ip,
     action: action,
