@@ -15,6 +15,7 @@ import { MonitoringModule } from './monitoring/monitoring.module';
 import { AiEngineModule } from './ai-engine/ai-engine.module';
 import { AlertsModule } from './alerts/alerts.module';
 import { AuditModule } from './audit/audit.module';
+import { AdminModule } from './admin/admin.module';
 import { AiSecurityGuard } from './ai-engine/ai-security.guard';
 
 @Module({
@@ -49,6 +50,7 @@ import { AiSecurityGuard } from './ai-engine/ai-security.guard';
     AiEngineModule,
     AlertsModule,
     AuditModule,
+    AdminModule,
   ],
   providers: [
     {
