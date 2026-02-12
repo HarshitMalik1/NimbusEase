@@ -9,7 +9,7 @@ import { RolesGuard } from './auth/roles.guard';
 import helmet from 'helmet';
 import compression from 'compression';
 import * as fs from 'fs';
-import * as cookieParser from 'cookie-parser';
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const httpsOptions = process.env.NODE_ENV === 'production' ? {

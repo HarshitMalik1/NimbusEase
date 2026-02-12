@@ -23,7 +23,8 @@
     "moduleResolution": "node16",
     "resolveJsonModule": true,
     "types": ["node", "jest"],
-    "rootDir": "./root/backend/src"
+    "rootDir": "./root/backend/src",
+    "ignoreDeprecations": "6.0"
   },
   "include": [
     "root/backend/src/**/*"
