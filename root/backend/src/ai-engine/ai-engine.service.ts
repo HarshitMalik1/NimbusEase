@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import * as tf from '@tensorflow/tfjs';
-import '@tensorflow/tfjs-node';
+// import '@tensorflow/tfjs-node';
 import * as path from 'path';
 import * as fs from 'fs';
 import { OnEvent } from '@nestjs/event-emitter';

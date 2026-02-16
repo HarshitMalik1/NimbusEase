@@ -15,7 +15,7 @@ export class RefreshTokenStrategy extends PassportStrategy(
           return req?.cookies?.['refreshToken'];
         },
       ]),
-      secretOrKey: process.env.JWT_REFRESH_SECRET || 'refresh-secret', // Fallback for dev
+      secretOrKey: process.env.JWT_REFRESH_SECRET,
       passReqToCallback: true,
     });
   }

@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { apiClient } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
-import ThreatAlerts from './ThreatAlerts';
+import ThreatAlerts from '../components/ThreatAlert';
 import FileManagement from './fileManagement';
 import ActivityLogs from './ActivityLogs';
 import BlockchainVerification from './BlockchainVerification';

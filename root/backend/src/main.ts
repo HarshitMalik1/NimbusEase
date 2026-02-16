@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { Reflector } from '@nestjs/core';
+import 'dotenv/config';
 import { AppModule } from './app.module';
 
 import { RolesGuard } from './auth/roles.guard';
@@ -35,9 +36,10 @@ async function bootstrap() {
   app.use(compression());
 
   // 🌍 CORS
-  const allowedOrigins = process.env.ALLOWED_ORIGINS 
-    ? process.env.ALLOWED_ORIGINS.split(',') 
-    : [process.env.FRONTEND_URL || 'http://localhost:3001'];
+  const allowedOrigins = [
+    process.env.FRONTEND_URL || 'http://localhost:3000',
+    'http://localhost:3001',
+  ];
 
   app.enableCors({
     origin: allowedOrigins,
@@ -69,7 +71,8 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  const port = process.env.PORT || 3000;
+  const port = process.env.PORT || 3001;
+  console.log(`Attempting to listen on port: ${port}`);
   await app.listen(port);
 
   console.log(`🚀 Application running on: http://localhost:${port}`);

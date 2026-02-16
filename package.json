@@ -4,6 +4,7 @@
   "description": "Blockchain-backed secure cloud storage backend",
   "scripts": {
     "start": "nest start",
+    "start:frontend": "cd root/frontend && npm start",
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main",
     "build": "nest build",

@@ -45,10 +45,13 @@ export class AuthService {
 
     await this.userRepository.save(user);
 
+    // Mask email for logging: u***r@example.com
+    const maskedEmail = email.replace(/^(.)(.*)(.@.*)$/, (_, a, b, c) => a + b.replace(/./g, '*') + c);
+
     await this.auditService.logAction(
       user.id.toString(),
       'USER_REGISTERED',
-      { email },
+      { email: maskedEmail },
       'INFO'
     );
 
@@ -56,6 +59,11 @@ export class AuthService {
       message: 'Registration successful',
       userId: user.id.toString(),
     };
+  }
+
+  async checkEmail(email: string) {
+    const user = await this.userRepository.findOne({ where: { email } });
+    return { exists: !!user };
   }
 
   async login(loginDto: LoginDto) {

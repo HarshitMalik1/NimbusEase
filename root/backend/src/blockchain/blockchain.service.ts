@@ -33,7 +33,8 @@ export class BlockchainService implements OnModuleInit, OnModuleDestroy {
       const ccpPath = process.env.FABRIC_CONNECTION_PROFILE_PATH || path.resolve(__dirname, '..', '..', '..', '..', 'connection-org1.json');
       
       if (!fs.existsSync(ccpPath)) {
-        throw new Error(`Fabric connection profile not found at ${ccpPath}. Blockchain service initialization failed.`);
+        console.warn(`⚠️  Fabric connection profile not found at ${ccpPath}. Blockchain service will be disabled.`);
+        return;
       }
       
       const ccp = JSON.parse(fs.readFileSync(ccpPath, 'utf8'));

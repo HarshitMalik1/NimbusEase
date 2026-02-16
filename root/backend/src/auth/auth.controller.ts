@@ -16,21 +16,26 @@ export class AuthController {
     return this.authService.register(registerDto);
   }
 
+  @Post('check-email')
+  async checkEmail(@Body('email') email: string) {
+    return this.authService.checkEmail(email);
+  }
+
   @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('login')
   async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.login(loginDto);
     
-    if (result.accessToken && result.refreshToken) {
-      res.cookie('accessToken', result.accessToken, {
+    if ('accessToken' in result && 'refreshToken' in result) {
+      res.cookie('accessToken', result.accessToken as string, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
         maxAge: 15 * 60 * 1000, // 15 mins
       });
 
-      res.cookie('refreshToken', result.refreshToken, {
+      res.cookie('refreshToken', result.refreshToken as string, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',

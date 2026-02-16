@@ -7,11 +7,10 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // Check if user is logged in (e.g. token exists)
-    // For now, mock it or decode token
-    const token = localStorage.getItem('token');
-    if (token) {
-        setUser({ name: 'Test User', role: 'ADMIN' }); // Mock
+    // Check if user is logged in
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+        setUser(JSON.parse(userStr));
     }
   }, []);
 
@@ -31,7 +30,15 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => {
-    // Return a mock user for now to ensure Dashboard renders
-    return { user: { name: 'Demo User', role: 'admin' } }; 
-    // In real app: return useContext(AuthContext);
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    
+    return { 
+        user, 
+        isAuthenticated: !!user,
+        logout: () => {
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+        }
+    }; 
 };

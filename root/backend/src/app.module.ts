@@ -22,6 +22,7 @@ import { AiSecurityGuard } from './ai-engine/ai-security.guard';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: 'root/backend/.env',
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
