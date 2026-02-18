@@ -1,172 +1,101 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../services/api';
+import { Lock, Mail, ShieldAlert } from 'lucide-react';
 
-const AuthPage = () => {
-  const [step, setStep] = useState('check'); // 'check', 'login', 'signup'
+const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
   const navigate = useNavigate();
-
-  const handleCheckEmail = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      const response = await apiClient.post('/auth/check-email', { email });
-      if (response.data.exists) {
-        setStep('login');
-      } else {
-        setStep('signup');
-      }
-    } catch (err) {
-      setError('Error checking email. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
-    try {
-      const response = await apiClient.post('/auth/login', { email, password });
-      if (response.data.user) {
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-        navigate('/dashboard');
-      }
-    } catch (err) {
-      const msg = err.response?.data?.message;
-      setError(Array.isArray(msg) ? msg.join(', ') : msg || 'Login failed.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSignup = async (e) => {
-    e.preventDefault();
     setError('');
-    setLoading(true);
     try {
-      await apiClient.post('/auth/register', { fullName, email, password });
-      // After signup, automatically log them in
-      const loginRes = await apiClient.post('/auth/login', { email, password });
-      if (loginRes.data.user) {
-        localStorage.setItem('user', JSON.stringify(loginRes.data.user));
-        navigate('/dashboard');
-      }
+      const res = await apiClient.post('auth/login', { email, password });
+      login(res.data.user);
+      navigate('/dashboard');
     } catch (err) {
-      const msg = err.response?.data?.message;
-      setError(Array.isArray(msg) ? msg.join(', ') : msg || 'Registration failed.');
+      console.error("FULL_AUTH_ERROR:", err);
+      if (err.response) {
+        console.error("SERVER_RESPONSE_DATA:", err.response.data);
+        setError(err.response.data.message || 'Access Denied: Server error.');
+      } else if (err.request) {
+        console.error("NO_RESPONSE_RECEIVED. Is backend running on 3002?");
+        setError('Cannot connect to security node. Check backend status.');
+      } else {
+        setError('Authentication request failed.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="container mt-5">
-      <div className="row justify-content-center">
-        <div className="col-md-5">
-          <div className="card shadow border-0">
-            <div className="card-body p-4">
-              <h3 className="text-center mb-4">
-                {step === 'check' && 'Welcome'}
-                {step === 'login' && 'Login'}
-                {step === 'signup' && 'Create Account'}
-              </h3>
-
-              {error && <div className="alert alert-danger">{error}</div>}
-
-              {step === 'check' && (
-                <form onSubmit={handleCheckEmail}>
-                  <div className="mb-3">
-                    <label className="form-label">Enter your email to get started</label>
-                    <input
-                      type="email"
-                      className="form-control"
-                      placeholder="name@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <button type="submit" className="btn btn-primary w-100 py-2" disabled={loading}>
-                    {loading ? 'Checking...' : 'Continue'}
-                  </button>
-                </form>
-              )}
-
-              {step === 'login' && (
-                <form onSubmit={handleLogin}>
-                  <div className="mb-3">
-                    <label className="form-label">Email</label>
-                    <input type="email" className="form-control" value={email} disabled />
-                  </div>
-                  <div className="mb-3">
-                    <label className="form-label">Password</label>
-                    <input
-                      type="password"
-                      className="form-control"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      autoFocus
-                    />
-                  </div>
-                  <button type="submit" className="btn btn-primary w-100 py-2" disabled={loading}>
-                    {loading ? 'Logging in...' : 'Login'}
-                  </button>
-                  <button type="button" className="btn btn-link w-100 mt-2" onClick={() => setStep('check')}>
-                    Back
-                  </button>
-                </form>
-              )}
-
-              {step === 'signup' && (
-                <form onSubmit={handleSignup}>
-                  <div className="mb-3">
-                    <label className="form-label">Email</label>
-                    <input type="email" className="form-control" value={email} disabled />
-                  </div>
-                  <div className="mb-3">
-                    <label className="form-label">Full Name</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      required
-                      autoFocus
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label className="form-label">Password (min 8 chars, 1 uppercase, 1 digit)</label>
-                    <input
-                      type="password"
-                      className="form-control"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <button type="submit" className="btn btn-success w-100 py-2" disabled={loading}>
-                    {loading ? 'Creating account...' : 'Sign Up'}
-                  </button>
-                  <button type="button" className="btn btn-link w-100 mt-2" onClick={() => setStep('check')}>
-                    Back
-                  </button>
-                </form>
-              )}
+    <div className="container min-vh-100 d-flex align-items-center justify-content-center">
+      <div className="col-md-5">
+        <div className="text-center mb-5">
+          <ShieldAlert className="neon-text mb-3" size={64} />
+          <h1 className="Orbitron neon-text">NIMBUSEASE</h1>
+          <p className="text-white-50 tracking-widest">QUANTUM_ENCRYPTION_VAULT</p>
+        </div>
+        
+        <div className="glass-card neon-border p-5">
+          <h4 className="Orbitron text-center mb-4">IDENTIFICATION_REQUIRED</h4>
+          
+          {error && <div className="alert bg-danger text-white border-0 small mb-4">{error}</div>}
+          
+          <form onSubmit={handleLogin}>
+            <div className="mb-4">
+              <div className="d-flex align-items-center mb-2 text-white-50 small">
+                <Mail size={14} className="me-2" /> USER_EMAIL
+              </div>
+              <input 
+                type="email" 
+                className="form-control bg-dark border-dark text-white p-3" 
+                placeholder="name@domain.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
             </div>
-          </div>
+            
+            <div className="mb-5">
+              <div className="d-flex align-items-center mb-2 text-white-50 small">
+                <Lock size={14} className="me-2" /> ACCESS_CREDENTIAL
+              </div>
+              <input 
+                type="password" 
+                className="form-control bg-dark border-dark text-white p-3" 
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            
+            <button type="submit" className="btn neon-btn w-100 py-3 mb-3" disabled={loading}>
+              {loading ? 'VERIFYING...' : 'INITIATE_AUTH'}
+            </button>
+            
+            <div className="text-center mt-3 d-flex flex-column gap-2">
+              <a href="/signup" className="text-info small text-decoration-none Orbitron">NEW_IDENTITY_REGISTRATION</a>
+              <a href="#" className="text-white-50 small text-decoration-none hover:text-info">Request access credentials</a>
+            </div>
+          </form>
+        </div>
+        
+        <div className="text-center mt-4 text-white-50 small">
+          SECURE_NODE: 172.16.254.1 | SYSTEM_STATUS: <span className="text-success">NOMINAL</span>
         </div>
       </div>
     </div>
   );
 };
 
-export default AuthPage;
+export default Login;

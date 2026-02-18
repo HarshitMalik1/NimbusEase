@@ -24,41 +24,50 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto) {
-    const { email, password, fullName } = registerDto;
+    const { email, password, fullName, role } = registerDto;
+    console.log(`[DEBUG] Registration attempt for: ${email} with role: ${role}`);
 
-    // Check if user exists
-    const existingUser = await this.userRepository.findOne({ where: { email: email } });
-    if (existingUser) {
-      throw new BadRequestException('User already exists');
+    try {
+      // Check if user exists
+      const existingUser = await this.userRepository.findOne({ where: { email: email } });
+      if (existingUser) {
+        console.log(`[DEBUG] Registration failed: User ${email} already exists`);
+        throw new BadRequestException('User already exists');
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 12);
+
+      // Create user
+      const user = this.userRepository.create({
+        email,
+        password: hashedPassword,
+        fullName,
+        role: (role?.toUpperCase() === 'ADMIN' ? UserRole.ADMIN : UserRole.USER),
+        isActive: true,
+      });
+
+      await this.userRepository.save(user);
+      console.log(`[DEBUG] User ${email} registered successfully.`);
+
+      // Mask email for logging: u***r@example.com
+      const maskedEmail = email.replace(/^(.)(.*)(.@.*)$/, (_, a, b, c) => a + b.replace(/./g, '*') + c);
+
+      await this.auditService.logAction(
+        user.id.toString(),
+        'USER_REGISTERED',
+        { email: maskedEmail },
+        'INFO'
+      );
+
+      return {
+        message: 'Registration successful',
+        userId: user.id.toString(),
+      };
+    } catch (e) {
+      console.error(`[DEBUG] Registration error: ${e.message}`);
+      throw e;
     }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    // Create user
-    const user = this.userRepository.create({
-      email,
-      password: hashedPassword,
-      fullName,
-      role: UserRole.USER,
-    });
-
-    await this.userRepository.save(user);
-
-    // Mask email for logging: u***r@example.com
-    const maskedEmail = email.replace(/^(.)(.*)(.@.*)$/, (_, a, b, c) => a + b.replace(/./g, '*') + c);
-
-    await this.auditService.logAction(
-      user.id.toString(),
-      'USER_REGISTERED',
-      { email: maskedEmail },
-      'INFO'
-    );
-
-    return {
-      message: 'Registration successful',
-      userId: user.id.toString(),
-    };
   }
 
   async checkEmail(email: string) {
@@ -68,20 +77,32 @@ export class AuthService {
 
   async login(loginDto: LoginDto) {
     const { email, password, mfaCode } = loginDto;
+    console.log(`[DEBUG] Attempting login for email: ${email}`);
 
-    // Find user
+    // Find user using MongoDB compatible select
     const user = await this.userRepository.findOne({
-      where: { email: email },
-      select: ['id', 'email', 'password', 'role', 'mfaEnabled', 'mfaSecret', 'isActive'],
+      where: { email: email } as any,
+      select: ['id', 'email', 'password', 'role', 'mfaEnabled', 'mfaSecret', 'isActive'] as any,
     });
 
-    if (!user || !user.isActive) {
+    if (!user) {
+      console.log(`[DEBUG] Login failed: User not found for email ${email}`);
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    console.log(`[DEBUG] User found: ${user.email}`);
+    console.log(`[DEBUG] Password hash retrieved: ${user.password ? user.password.substring(0, 10) + '...' : 'MISSING'}`);
+
+    if (!user.isActive) {
+      console.log(`[DEBUG] Login failed: User ${email} is not active`);
       throw new UnauthorizedException('Invalid credentials');
     }
 
     // Verify password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    console.log(`[DEBUG] Verifying password for ${email}...`);
+    const isPasswordValid = await bcrypt.compare(password, user.password || '');
     if (!isPasswordValid) {
+      console.log(`[DEBUG] Login failed: Password mismatch for ${email}`);
       await this.auditService.logAction(
         user.id.toString(),
         'LOGIN_FAILED',
@@ -90,6 +111,8 @@ export class AuthService {
       );
       throw new UnauthorizedException('Invalid credentials');
     }
+
+    console.log(`[DEBUG] Password valid for ${email}. Checking MFA...`);
 
     // Check MFA if enabled
     if (user.mfaEnabled) {

@@ -8,13 +8,19 @@ export class RegisterDto {
   @IsNotEmpty()
   @MinLength(8)
   @MaxLength(128)
-  @Matches(/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, { message: 'Password too weak' })
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/, { 
+    message: 'Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, and one number.' 
+  })
   password!: string;
 
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
   fullName!: string;
+
+  @IsString()
+  @IsOptional()
+  role?: string;
 }
 
 export class LoginDto {

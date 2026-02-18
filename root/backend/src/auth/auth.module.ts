@@ -23,7 +23,11 @@ import { AuditModule } from '../audit/audit.module';
     AuditModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, RefreshTokenStrategy],
+  providers: [
+    AuthService, 
+    JwtStrategy, 
+    RefreshTokenStrategy
+  ],
   exports: [AuthService, JwtModule, PassportModule],
 })
 export class AuthModule {}

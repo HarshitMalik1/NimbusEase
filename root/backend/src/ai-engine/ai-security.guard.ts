@@ -25,6 +25,15 @@ export class AiSecurityGuard implements CanActivate {
     const userId = user?.id || 'anonymous';
     const clientIp = ip || request.connection.remoteAddress;
 
+    // 🔓 BYPASS: Allow authentication routes to skip AI analysis
+    const isPublicAuthRoute = url.includes('/auth/login') || 
+                             url.includes('/auth/register') || 
+                             url.includes('/auth/check-email');
+    
+    if (isPublicAuthRoute) {
+      return true;
+    }
+
     // 1. 🛑 Fast Block Check (Circuit Breaker / Blacklist)
     if (this.securityAgent.isBlocked(clientIp, userId)) {
       this.logger.warn(`🚫 BLOCKED ACCESS ATTEMPT from ${clientIp} (User: ${userId})`);

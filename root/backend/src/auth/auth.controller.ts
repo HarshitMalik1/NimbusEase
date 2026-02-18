@@ -9,8 +9,6 @@ import { Response } from 'express';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @UseGuards(ThrottlerGuard)
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('register')
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
@@ -21,10 +19,9 @@ export class AuthController {
     return this.authService.checkEmail(email);
   }
 
-  @UseGuards(ThrottlerGuard)
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('login')
   async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
+    console.log(`[AUTH] Login attempt received for: ${loginDto.email}`);
     const result = await this.authService.login(loginDto);
     
     if ('accessToken' in result && 'refreshToken' in result) {

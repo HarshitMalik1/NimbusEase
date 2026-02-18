@@ -9,7 +9,7 @@ services:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: password123
     ports:
-      - "127.0.0.1:27017:27017"
+      - "127.0.0.1:27018:27017"
     volumes:
       - mongo_data:/data/db
     networks:
@@ -52,14 +52,14 @@ services:
   # Frontend
   frontend:
     build:
-      context: ./frontend
+      context: ./root/frontend
       dockerfile: Dockerfile
     container_name: secure-cloud-frontend
     environment:
       REACT_APP_API_URL: http://localhost:3000
       REACT_APP_WS_URL: ws://localhost:3000
     ports:
-      - "3001:80"
+      - "3002:80"
     depends_on:
       - backend
     networks:

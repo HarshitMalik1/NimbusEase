@@ -1,26 +1,26 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Dashboard from './pages/dashboard';
-import FileManagement from './pages/fileManagement';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
+import Dashboard from './pages/Dashboard.jsx';
+import Landing from './pages/Landing';
 import Signup from './pages/Signup';
 
 const ProtectedRoute = ({ children }) => {
-  const token = localStorage.getItem('token');
-  if (!token) {
-    return <Navigate to="/login" replace />;
-  }
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user) return <Navigate to="/landing" />;
   return children;
 };
 
 function App() {
   return (
-    <Router>
-      <div className="App">
+    <AuthProvider>
+      <Router>
         <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/login" element={<Login />} />
+          <Route path="/landing" element={<Landing />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/login" element={<Login />} />
           <Route 
             path="/dashboard" 
             element={
@@ -29,17 +29,10 @@ function App() {
               </ProtectedRoute>
             } 
           />
-          <Route 
-            path="/files" 
-            element={
-              <ProtectedRoute>
-                <FileManagement />
-              </ProtectedRoute>
-            } 
-          />
+          <Route path="/" element={<Navigate to="/landing" />} />
         </Routes>
-      </div>
-    </Router>
+      </Router>
+    </AuthProvider>
   );
 }
 

@@ -26,33 +26,38 @@ import { AiSecurityGuard } from './ai-engine/ai-security.guard';
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        type: 'mongodb',
-        url: configService.get('MONGO_URL') || 'mongodb://localhost:27017/secure_cloud',
-        autoLoadEntities: true,
-        synchronize: process.env.NODE_ENV !== 'production', // ⚠️ Disable in production
-        useUnifiedTopology: true,
-        useNewUrlParser: true,
-      }),
+      useFactory: (configService: ConfigService) => {
+        const mongoUrl = configService.get('MONGO_URL') || 'mongodb://admin:password123@localhost:27018/secure_cloud?authSource=admin';
+        console.log(`[DEBUG] Connecting to MongoDB at: ${mongoUrl}`);
+        return {
+          type: 'mongodb',
+          url: mongoUrl,
+          autoLoadEntities: true,
+          synchronize: process.env.NODE_ENV !== 'production',
+          useUnifiedTopology: true,
+          useNewUrlParser: true,
+        };
+      },
       inject: [ConfigService],
     }),
     ThrottlerModule.forRoot([{
       name: 'short',
       ttl: 60000,
-      limit: 10,
+      limit: 100, // Increased from 10
     }, {
       name: 'medium',
       ttl: 60000,
-      limit: 50,
+      limit: 200, // Increased from 50
     }, {
       name: 'long',
       ttl: 60000,
-      limit: 100,
+      limit: 500, // Increased from 100
     }]),
     ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),
 
     // Feature Modules
+    AuthModule,
     UsersModule,
     StorageModule,
     BlockchainModule,

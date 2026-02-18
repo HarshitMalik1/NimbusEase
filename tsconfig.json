@@ -1,37 +1,12 @@
 {
   "compilerOptions": {
     "module": "node16",
-    "declaration": true,
-    "removeComments": true,
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "allowSyntheticDefaultImports": true,
-    "target": "es2017",
-    "sourceMap": true,
-    "outDir": "./dist",
-    "baseUrl": "./",
-    "incremental": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "strictNullChecks": true,
-    "noImplicitAny": true,
-    "strictBindCallApply": true,
-    "forceConsistentCasingInFileNames": true,
-    "noFallthroughCasesInSwitch": true,
-    "esModuleInterop": true,
-    "strictPropertyInitialization": true,
+    "target": "es2021",
     "moduleResolution": "node16",
-    "resolveJsonModule": true,
-    "types": ["node", "jest"],
-    "rootDir": "./root/backend/src",
-    "ignoreDeprecations": "5.0"
+    "baseUrl": "./",
+    "ignoreDeprecations": "5.0",
+    "skipLibCheck": true,
+    "strict": true
   },
-  "include": [
-    "root/backend/src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/*.bak"
-  ]
+  "exclude": ["node_modules", "dist"]
 }

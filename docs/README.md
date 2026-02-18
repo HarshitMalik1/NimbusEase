@@ -1,7 +1,7 @@
-# SecureCloud Platform: The Future of Zero-Trust Storage
+# NimbusEase Platform: The Future of Zero-Trust Storage
 
 ## 🚀 What is this Project?
-**SecureCloud** is a next-generation secure cloud storage solution designed to demonstrate a **"Zero-Trust" architecture**. Unlike traditional cloud storage (like Google Drive or Dropbox) where you trust the provider with your data, SecureCloud assumes the infrastructure itself might be compromised.
+**Nimbus Ease** is a next-generation secure cloud storage solution designed to demonstrate a **"Zero-Trust" architecture**. Unlike traditional cloud storage (like Google Drive or Dropbox) where you trust the provider with your data, SecureCloud assumes the infrastructure itself might be compromised.
 
 It solves the "Trust Problem" by combining three cutting-edge technologies:
 1.  **Cloud (AWS S3):** For scalable storage of large encrypted files.

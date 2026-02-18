@@ -20,7 +20,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         },
       ]),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET,
+      secretOrKey: process.env.JWT_SECRET || 'dev-secret-key',
     });
   }
 
@@ -29,9 +29,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('Invalid token payload');
     }
 
-    const user = await this.userRepository.findOne({ where: { id: new ObjectId(payload.sub) } });
+    // MongoDB lookup in TypeORM often requires _id or a specific format
+    const user = await this.userRepository.findOne({ 
+      where: { _id: new ObjectId(payload.sub) } as any 
+    });
 
     if (!user) {
+      console.error(`[JWT_DEBUG] User not found in database for ID: ${payload.sub}`);
       throw new UnauthorizedException('User not found');
     }
 
