@@ -14,9 +14,6 @@ export class AnomalyDetection {
   @Column()
   features!: any;
 
-  @Column({ nullable: true })
-  llmAnalysis!: any;
-
   @Column({ default: 'DETECTED' })
   status!: 'DETECTED' | 'ANALYZED' | 'RESOLVED';
 

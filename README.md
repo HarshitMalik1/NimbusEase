@@ -9,7 +9,7 @@ NimbusEase is built on a "Security-First" philosophy, employing multiple layers 
 ### 1. AI-Driven Threat Detection & Autonomous Response
 The system features a global `AiSecurityGuard` that analyzes every request in real-time.
 *   **TensorFlow Anomaly Detection:** Uses a trained neural network to identify suspicious access patterns based on entropy, resource usage, and action frequency.
-*   **LLM Threat Analysis:** High-risk activities are analyzed by a specialized security LLM (via LM Studio) to classify attacks like Brute Force, SQLi, SSRF, and Prompt Injection.
+*   **AI Threat Detection:** Real-time analysis of network activity and file uploads using TensorFlow.js and specialized Python ensembles (SoReL, Dike, PDF).
 *   **Autonomous Mitigation:** The system can automatically execute defensive actions, including:
     *   **BLOCK_IP:** Blacklisting malicious source IPs.
     *   **REVOKE_USER:** Terminating active sessions for compromised accounts.
@@ -40,7 +40,6 @@ Every file uploaded to NimbusEase is registered on a **Hyperledger Fabric** priv
 - Node.js (v18+)
 - MongoDB & Redis
 - Docker (for Hyperledger Fabric)
-- LM Studio (for AI features)
 
 ### Installation
 1. Clone the repository:

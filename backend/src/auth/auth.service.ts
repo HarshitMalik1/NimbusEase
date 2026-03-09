@@ -185,7 +185,7 @@ export class AuthService {
     const accessToken = this.jwtService.sign(payload);
     const refreshToken = this.jwtService.sign(payload, {
       secret: process.env.JWT_REFRESH_SECRET,
-      expiresIn: '3d',
+      expiresIn: '24h',
     });
 
     // Store refresh token
@@ -197,7 +197,7 @@ export class AuthService {
     await this.refreshTokenRepository.save({
       userId: user.id.toString(),
       token: hashedRefreshToken,
-      expiresAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     });
 
     return { accessToken, refreshToken };
@@ -299,6 +299,14 @@ export class AuthService {
     await this.refreshTokenRepository.delete({
       userId,
     });
+    
+    await this.auditService.logAction(
+      userId,
+      'USER_LOGGED_OUT',
+      {},
+      'INFO'
+    );
+
     return { message: 'Logged out successfully' };
   }
 }

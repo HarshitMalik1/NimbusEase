@@ -9,10 +9,10 @@
     "start:prod": "node dist/main.js",
     "build": "nest build",
     "test": "jest",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\""
-  },
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
+    "audit": "npm audit && npx snyk test"
+    },
   "dependencies": {
-    "@anthropic-ai/sdk": "0.27.0",
     "@aws-sdk/client-s3": "^3.988.0",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "3.0.0",

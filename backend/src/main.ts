@@ -7,6 +7,7 @@ import 'dotenv/config';
 import { AppModule } from './app.module';
 
 import { RolesGuard } from './auth/roles.guard';
+import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
 import helmet from 'helmet';
 import compression from 'compression';
@@ -29,6 +30,9 @@ async function bootstrap() {
   });
 
   app.use(cookieParser());
+
+  // 🔐 Global Exception Filter
+  app.useGlobalFilters(new AllExceptionsFilter());
 
   // 🔐 Global Roles Guard (RBAC)
   const reflector = app.get(Reflector);

@@ -7,8 +7,8 @@ import * as fs from 'fs';
 export class DynamicSandboxService {
   private readonly logger = new Logger(DynamicSandboxService.name);
   
-  // Create a free account at virustotal.com to get your API key
-  private readonly VT_API_KEY = 'YOUR_FREE_VIRUSTOTAL_API_KEY_HERE';
+  // Use process.env for the API key to avoid hardcoding
+  private readonly VT_API_KEY = process.env.VIRUSTOTAL_API_KEY || 'YOUR_FREE_VIRUSTOTAL_API_KEY_HERE';
   private readonly VT_URL = 'https://www.virustotal.com/api/v3';
 
   async detonate(filePath: string, filename: string): Promise<{ isMalicious: boolean; behaviors: string[] }> {

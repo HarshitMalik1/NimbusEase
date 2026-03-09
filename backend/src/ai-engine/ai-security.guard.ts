@@ -105,7 +105,6 @@ export class AiSecurityGuard implements CanActivate {
     if (aiVerdict.isAnomaly) {
       this.logger.warn(`⚠️ Network Anomaly Detected (Confidence: ${aiVerdict.confidence.toFixed(2)})`);
 
-      // 6. 🕵️ DEEP ANALYSIS (LLM Heuristic Fallback)
       const threatAnalysis = await this.securityAgent.analyzeThreat(logData);
 
       if (threatAnalysis.is_attack && threatAnalysis.mitigation_action !== 'NONE') {

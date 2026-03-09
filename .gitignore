@@ -24,13 +24,6 @@ build/
 secrets/
 *.key
 *.pem
-LM Studio/
-LM-Studio-*.exe
-dashboard_output.txt
-final_verification.txt
-full_sim_output.txt
-full_spectrum_output.txt
-
 # Environment variables
 .env
 .env.local

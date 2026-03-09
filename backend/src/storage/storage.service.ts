@@ -227,6 +227,11 @@ export class StorageService {
       file.lastAccessedAt = new Date();
       await this.fileRepository.save(file);
       
+      await this.auditService.logAction(userId, 'FILE_DOWNLOADED', {
+        resourceId: file.id.toString(),
+        fileName: file.fileName,
+      }, 'INFO');
+
       const sanitizedFilename = file.fileName.replace(/[\n\r]/g, '_');
       console.log(`[STORAGE_DEBUG] Download successful: ${sanitizedFilename}`);
       return { buffer: decrypted, fileName: file.fileName, mimeType: file.mimeType, integrityVerified: true };
